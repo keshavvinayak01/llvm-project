@@ -2843,3 +2843,58 @@ mlir::separateFullTiles(MutableArrayRef<AffineForOp> inputNest,
 
   return success();
 }
+
+bool mlir::isReductionNest(AffineForOp ForOp) {
+  /*
+  General Reduction format:
+  1. Loads from the array and the value to reduce to(in no particular order)
+  2. Can perform whatever arithmetic and LS operations it wants to on the array loaded value.
+  3. Performs an arithmetic operation using the reduce-value and the formatted/non-formatted array value
+  4. Store to the reduction variable.
+  */
+	std::vector<int> InstructionOrder;
+	AffineLoadOp ArrayVar, ReductionVar;
+	Value LastStoreVar;
+	Operation* LastArithOp = NULL;
+	bool BadArrayStore = false, HasArithOp = false;
+  ForOp.walk([&](Operation* Op) {
+		if(isa<AffineLoadOp>(Op)) {
+			AffineLoadOp LoadOp = dyn_cast<AffineLoadOp>(Op);
+			// Detected a load from an array / matrix.
+	    if(!LoadOp.getMemRefType().getShape().empty()) {
+				ArrayVar = LoadOp;
+			}
+			// Should be a load from the reduction variable.
+			else 
+				ReductionVar = LoadOp;
+		}
+		else if(isa<AffineStoreOp>(Op)) {
+			AffineStoreOp StoreOp = dyn_cast<AffineStoreOp>(Op);
+	    if(!StoreOp.getMemRefType().getShape().empty()) {
+				// The array/matrix store memref must be the same memref as LoadOp else bad/illegal reduction structure.
+				if (StoreOp.getMemRef() != ArrayVar.getMemRef()) {
+					BadArrayStore = true;
+				}
+			}
+			// The last non-array store must be to the reduction variable else bad/illegal reduction structure.
+			else
+				LastStoreVar = StoreOp.getMemref();
+		}
+		else if(
+			isa<arith::AddFOp>(Op) ||
+			isa<arith::MulFOp>(Op) ||
+			isa<arith::MaxFOp>(Op) ||
+			isa<arith::MinFOp>(Op) ||
+  		isa<arith::DivFOp>(Op)){
+				LastArithOp = Op;
+		}
+  });
+	// There must be some arithmetic computation between the array memref and the reduction memref
+	if(LastArithOp) {
+		HasArithOp = ((LastArithOp->getOperands()[0] == ArrayVar) && 
+									(LastArithOp->getOperands()[1] == ReductionVar)) || 
+								 ((LastArithOp->getOperands()[1] == ArrayVar) && 
+									(LastArithOp->getOperands()[0] == ReductionVar));
+	}
+  return HasArithOp && (LastStoreVar == ReductionVar.getMemRef()) && (!BadArrayStore);
+}
