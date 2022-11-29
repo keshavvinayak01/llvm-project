@@ -43,6 +43,11 @@ def AffineDataCopyGeneration : Pass<"affine-data-copy-generate", "func::FuncOp">
   ];
 }
 
+def AffineLoopInterchange : Pass<"affine-loop-interchange", "func::FuncOp"> {
+  let summary = "Custom Loop interchange pass";
+  let constructor = "mlir::createAffineLoopInterchangePass()";
+}
+
 def AffineLoopFusion : Pass<"affine-loop-fusion", "func::FuncOp"> {
   let summary = "Fuse affine loop nests";
   let description = [{

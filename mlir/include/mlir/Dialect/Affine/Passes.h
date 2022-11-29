@@ -30,6 +30,7 @@ enum FusionMode { Greedy, ProducerConsumer, Sibling };
 
 #define GEN_PASS_DECL_AFFINEDATACOPYGENERATION
 #define GEN_PASS_DECL_AFFINELOOPFUSION
+#define GEN_PASS_DECL_AFFINELOOPINTERCHANGE
 #define GEN_PASS_DECL_AFFINELOOPINVARIANTCODEMOTION
 #define GEN_PASS_DECL_AFFINELOOPTILING
 #define GEN_PASS_DECL_AFFINELOOPUNROLL
@@ -97,6 +98,9 @@ std::unique_ptr<OperationPass<func::FuncOp>>
 createLoopTilingPass(uint64_t cacheSizeBytes);
 /// Overload relying on pass options for initialization.
 std::unique_ptr<OperationPass<func::FuncOp>> createLoopTilingPass();
+
+/// Creates a pass to interchange affine.for's for performance gains.
+std::unique_ptr<OperationPass<func::FuncOp>> createAffineLoopInterchangePass();
 
 /// Creates a loop unrolling pass with the provided parameters.
 /// 'getUnrollFactor' is a function callback for clients to supply a function
