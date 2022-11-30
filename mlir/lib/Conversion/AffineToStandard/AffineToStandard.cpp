@@ -546,6 +546,15 @@ void mlir::populateAffineToVectorConversionPatterns(
   // clang-format on
 }
 
+void mlir::populateAffineToMemrefConversionPatterns(
+    RewritePatternSet &patterns) {
+  // clang-format off
+  patterns.add<
+      AffineLoadLowering,
+      AffineStoreLowering>(patterns.getContext());
+  // clang-format on
+}
+
 namespace {
 class LowerAffinePass
     : public impl::ConvertAffineToStandardBase<LowerAffinePass> {

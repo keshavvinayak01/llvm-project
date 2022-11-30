@@ -35,6 +35,11 @@ void populateAffineToStdConversionPatterns(RewritePatternSet &patterns);
 /// dialect.
 void populateAffineToVectorConversionPatterns(RewritePatternSet &patterns);
 
+/// Collect a set of patterns to convert Load/Store Affine ops to the Memref
+/// dialect.
+void populateAffineToMemrefConversionPatterns(RewritePatternSet &patterns);
+
+
 /// Emit code that computes the lower bound of the given affine loop using
 /// standard arithmetic operations.
 Value lowerAffineLowerBound(AffineForOp op, OpBuilder &builder);
