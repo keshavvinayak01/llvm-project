@@ -11,6 +11,7 @@
 #include "mlir/Conversion/SCFToGPU/SCFToGPU.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/GPU/IR/GPUDialect.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
@@ -43,9 +44,10 @@ struct ForLoopMapper : public impl::ConvertAffineForToGPUBase<ForLoopMapper> {
     for (Operation &op : llvm::make_early_inc_range(
              getOperation().getFunctionBody().getOps())) {
       if (auto forOp = dyn_cast<AffineForOp>(&op)) {
-        if (failed(convertAffineLoopNestToGPULaunch(forOp, numBlockDims,
+        if(!isa<func::CallOp>(forOp.getBody()->front()))  
+          if (failed(convertAffineLoopNestToGPULaunch(forOp, numBlockDims,
                                                     numThreadDims)))
-          signalPassFailure();
+            signalPassFailure();
       }
     }
   }
