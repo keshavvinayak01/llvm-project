@@ -269,6 +269,9 @@ void mapLoopToProcessorIds(scf::ForOp forOp, ArrayRef<Value> processorId,
 void gatherLoops(func::FuncOp func,
                  std::vector<SmallVector<AffineForOp, 2>> &depthToLoops);
 
+bool isReductionNest(mlir::AffineForOp ForOp);
+
+
 /// Creates an AffineForOp while ensuring that the lower and upper bounds are
 /// canonicalized, i.e., unused and duplicate operands are removed, any constant
 /// operands propagated/folded in, and duplicate bound maps dropped.
@@ -293,5 +296,6 @@ separateFullTiles(MutableArrayRef<AffineForOp> nest,
                   SmallVectorImpl<AffineForOp> *fullTileNest = nullptr);
 
 } // namespace mlir
+
 
 #endif // MLIR_DIALECT_AFFINE_LOOPUTILS_H

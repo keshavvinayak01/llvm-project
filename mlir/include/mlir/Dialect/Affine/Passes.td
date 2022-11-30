@@ -401,4 +401,9 @@ def AffineExpandIndexOps : Pass<"affine-expand-index-ops"> {
   let constructor = "mlir::createAffineExpandIndexOpsPass()";
 }
 
+def AffineReductionHelper : Pass<"affine-reduction-helper", "func::FuncOp"> {
+  let summary = "Helps in detecting and expressing reductions for running on the GPU";
+  let constructor = "mlir::createAffineReductionHelperPass()";
+}
+
 #endif // MLIR_DIALECT_AFFINE_PASSES

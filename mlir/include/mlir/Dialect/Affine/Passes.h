@@ -70,6 +70,8 @@ createAffineScalarReplacementPass();
 /// bounds into a single loop.
 std::unique_ptr<OperationPass<func::FuncOp>> createLoopCoalescingPass();
 
+std::unique_ptr<OperationPass<func::FuncOp>> createAffineReductionHelperPass();
+
 /// Creates a loop fusion pass which fuses loops according to type of fusion
 /// specified in `fusionMode`. Buffers of size less than or equal to
 /// `localBufSizeThreshold` are promoted to memory space `fastMemorySpace`.
