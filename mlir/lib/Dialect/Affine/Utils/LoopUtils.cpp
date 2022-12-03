@@ -2845,6 +2845,9 @@ mlir::separateFullTiles(MutableArrayRef<AffineForOp> inputNest,
 }
 
 bool mlir::isReductionNest(AffineForOp ForOp) {
+  if(isa<AffineForOp>(ForOp.getParentOp()))
+    return false;
+
   /*
   General Reduction format:
   1. Loads from the array and the value to reduce to(in no particular order)
@@ -2852,6 +2855,7 @@ bool mlir::isReductionNest(AffineForOp ForOp) {
   3. Performs an arithmetic operation using the reduce-value and the formatted/non-formatted array value
   4. Store to the reduction variable.
   */
+
 	std::vector<int> InstructionOrder;
 	AffineLoadOp ArrayVar, ReductionVar;
 	Value LastStoreVar;
@@ -2884,8 +2888,7 @@ bool mlir::isReductionNest(AffineForOp ForOp) {
 			isa<arith::AddFOp>(Op) ||
 			isa<arith::MulFOp>(Op) ||
 			isa<arith::MaxFOp>(Op) ||
-			isa<arith::MinFOp>(Op) ||
-  		isa<arith::DivFOp>(Op)){
+			isa<arith::MinFOp>(Op)){
 				LastArithOp = Op;
 		}
   });

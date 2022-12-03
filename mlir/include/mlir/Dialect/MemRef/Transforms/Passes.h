@@ -129,6 +129,9 @@ std::unique_ptr<OperationPass<ModuleOp>> createNormalizeMemRefsPass();
 /// operands.
 std::unique_ptr<Pass> createResolveRankedShapeTypeResultDimsPass();
 
+// An interprocedural pass to convert to AtomicRMW opeations.
+std::unique_ptr<Pass> createConvertToAtomicRMW();
+
 /// Creates an operation pass to resolve `memref.dim` operations with values
 /// that are defined by operations that implement the
 /// `InferShapedTypeOpInterface` or the `ReifyRankedShapeTypeShapeOpInterface`,

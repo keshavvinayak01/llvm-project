@@ -175,6 +175,21 @@ def ResolveRankedShapeTypeResultDims :
   ];
 }
 
+def ConvertToAtomicRMW :
+    Pass<"convert-to-atomicrmw"> {
+  let summary = "Merge Load/Store/Arithmetic operation to an Atomic RMW";
+  let description = [{
+    This pass merges Load/Store/Arithmetic operation to an Atomic RMW.
+    Especially important when the modified memory location is to be written
+    to by multiple threads/CUDA cores.
+  }];
+  let constructor =
+      "mlir::memref::createConvertToAtomicRMW()";
+  // let dependentDialects = [
+  //   "AffineDialect", "memref::MemRefDialect", "tensor::TensorDialect"
+  // ];
+}
+
 def ResolveShapedTypeResultDims : Pass<"resolve-shaped-type-result-dims"> {
   let summary = "Resolve memref.dim of result values";
   let description = [{
