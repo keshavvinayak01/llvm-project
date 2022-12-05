@@ -269,8 +269,11 @@ void mapLoopToProcessorIds(scf::ForOp forOp, ArrayRef<Value> processorId,
 void gatherLoops(func::FuncOp func,
                  std::vector<SmallVector<AffineForOp, 2>> &depthToLoops);
 
-bool isReductionNest(mlir::AffineForOp ForOp);
+// Helper function to judge whether a give affine.for contains a reduction.
+bool isReductionNest(AffineForOp ForOp);
 
+// The function adds an atomic RMW function within an affine.for IF possible.
+void ReplaceOpwithAtomicRMW(AffineForOp forOp, MLIRContext* context);
 
 /// Creates an AffineForOp while ensuring that the lower and upper bounds are
 /// canonicalized, i.e., unused and duplicate operands are removed, any constant

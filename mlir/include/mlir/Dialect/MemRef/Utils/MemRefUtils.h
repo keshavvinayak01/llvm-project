@@ -17,5 +17,3 @@
 #define MLIR_DIALECT_MEMREF_UTILS_MEMREFUTILS_H
 
 #endif // MLIR_DIALECT_MEMREF_UTILS_MEMREFUTILS_H
-
-void ReplaceOpwithAtomicRMW(AffineForOp forOp);

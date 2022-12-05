@@ -2845,9 +2845,8 @@ mlir::separateFullTiles(MutableArrayRef<AffineForOp> inputNest,
 }
 
 bool mlir::isReductionNest(AffineForOp ForOp) {
-  if(isa<AffineForOp>(ForOp.getParentOp()))
+  if(isa<AffineForOp>(ForOp.getOperation()->getParentOp()))
     return false;
-
   /*
   General Reduction format:
   1. Loads from the array and the value to reduce to(in no particular order)
@@ -2855,8 +2854,6 @@ bool mlir::isReductionNest(AffineForOp ForOp) {
   3. Performs an arithmetic operation using the reduce-value and the formatted/non-formatted array value
   4. Store to the reduction variable.
   */
-
-	std::vector<int> InstructionOrder;
 	AffineLoadOp ArrayVar, ReductionVar;
 	Value LastStoreVar;
 	Operation* LastArithOp = NULL;
@@ -2900,4 +2897,106 @@ bool mlir::isReductionNest(AffineForOp ForOp) {
 									(LastArithOp->getOperands()[0] == ReductionVar));
 	}
   return HasArithOp && (LastStoreVar == ReductionVar.getMemRef()) && (!BadArrayStore);
+  return false;
+}
+
+struct OperationWithOrder {
+  Operation* Op;
+  int order;
+};
+
+void mlir::ReplaceOpwithAtomicRMW(AffineForOp forOp, mlir::MLIRContext* context) {
+  // Operate only on the innermost affine.for
+  if(isa<AffineForOp>(forOp.getOperation()->getParentOp()))
+    return;
+  
+  OpBuilder builder(context);
+
+  DenseMap<Value, std::vector<OperationWithOrder>> memrefOperationGroups;
+  DenseMap<Value, arith::AtomicRMWKind> opKind;
+  AffineLoadOp lastLoadOp;
+  AffineStoreOp lastStoreOp;
+  Value lastMemrefLoc;
+  int order = 0;
+
+  forOp.walk([&](Operation* Op) {
+    if(auto loadOp = dyn_cast<AffineLoadOp>(Op)) {
+      lastMemrefLoc = loadOp.getMemRef();
+      std::vector<OperationWithOrder> newVec;
+      newVec.push_back({loadOp, order});
+      memrefOperationGroups[lastMemrefLoc] = newVec;
+    }
+
+    else if(lastMemrefLoc)
+      if(memrefOperationGroups.find(lastMemrefLoc) != memrefOperationGroups.end()) {
+        // Check for all possible consecutive possible reducible arithmetic
+        // Operation; Also the ArithOp needs to be immediately consecutive
+        // To the load operation.
+        if(order == (memrefOperationGroups.lookup(lastMemrefLoc)[0].order + 1)) {
+          auto loadOp = memrefOperationGroups.lookup(lastMemrefLoc)[0].Op;
+          if(auto arithOp = dyn_cast<arith::AddFOp>(Op)) {
+            if(arithOp->getOperands()[1].getDefiningOp() == loadOp) {
+              memrefOperationGroups[lastMemrefLoc].push_back({arithOp, order});
+              opKind[lastMemrefLoc] = arith::AtomicRMWKind::addf;
+            }
+          }
+          
+          else if(auto arithOp = dyn_cast<arith::MulFOp>(Op)) {
+            if(arithOp->getOperands()[1].getDefiningOp() == loadOp)
+              memrefOperationGroups[lastMemrefLoc].push_back({arithOp, order});
+              opKind[lastMemrefLoc] = arith::AtomicRMWKind::mulf;
+          }
+            
+          else if(auto arithOp = dyn_cast<arith::MaxFOp>(Op)) {
+            if(arithOp->getOperands()[1].getDefiningOp() == loadOp)
+              memrefOperationGroups[lastMemrefLoc].push_back({arithOp, order});
+              opKind[lastMemrefLoc] = arith::AtomicRMWKind::maxf;
+          }
+
+          else if(auto arithOp = dyn_cast<arith::MinFOp>(Op)) {
+            if(arithOp->getOperands()[1].getDefiningOp() == loadOp)
+              memrefOperationGroups[lastMemrefLoc].push_back({arithOp, order});
+              opKind[lastMemrefLoc] = arith::AtomicRMWKind::minf;
+          }
+        }
+
+        // Store the final store operation to be removed later.
+        // The Store needs to be consecutive to the Arithmetic operation
+        else if((order == (memrefOperationGroups.lookup(lastMemrefLoc)[1].order + 1))) {
+          auto storeOp = dyn_cast<AffineStoreOp>(Op);
+          if (storeOp && storeOp.getMemRef() == lastMemrefLoc) {
+            memrefOperationGroups[storeOp.getMemRef()].push_back({storeOp, order});
+          }
+        }
+      }
+    order++;
+  });
+
+  // Add a check here to see if the size of the group is exactly 3.
+  for(auto group : memrefOperationGroups) {
+    auto memrefOperations = group.second;
+    if(memrefOperations.size() != 3) {
+      continue;
+    }
+    
+    builder.setInsertionPoint(memrefOperations[2].Op);
+
+    // Create the AtomicRMW based on the three operations that are to be pruned.
+    builder.create<mlir::memref::AtomicRMWOp>(
+        memrefOperations[0].Op->getLoc(),
+        opKind[group.first],
+        memrefOperations[1].Op->getOperand(0),
+        dyn_cast<AffineLoadOp>(memrefOperations[0].Op).getMemRef(),
+        dyn_cast<AffineLoadOp>(memrefOperations[0].Op).getIndices()
+    );
+
+
+    // Need to remove all memref operations and just insert the one in last.
+      memrefOperations[2].Op->dropAllReferences();
+      memrefOperations[2].Op->erase();
+      memrefOperations[1].Op->dropAllReferences();
+      memrefOperations[1].Op->erase();
+      memrefOperations[0].Op->dropAllReferences();
+      memrefOperations[0].Op->erase();
+  }
 }

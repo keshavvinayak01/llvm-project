@@ -19,16 +19,8 @@
 #include "mlir/Dialect/Affine/Analysis/AffineAnalysis.h"
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Dialect/MemRef/Utils/MemRefUtils.h"
-
-// #include "mlir/Dialect/MemRef/IR/MemRef.h"
-// #include "mlir/Dialect/SCF/IR/SCF.h"
-// #include "mlir/Dialect/Vector/IR/VectorOps.h"
-
-#include "mlir/IR/BlockAndValueMapping.h"
-#include "mlir/IR/IntegerSet.h"
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace mlir {
@@ -48,22 +40,22 @@ namespace {
 }
 
 void ReductionHelper::runOnOperation() {
-  func::FuncOp Func = getOperation();
-  
-  Func.walk([&](AffineForOp ForOp) {
+  MLIRContext *context = &getContext();
+  getOperation().walk([&](AffineForOp ForOp) {
     // Add a check here to see if this ForOp contains an if condition.
     if(isReductionNest(ForOp)) {
-      ReplaceOpwithAtomicRMW(ForOp);
+      ReplaceOpwithAtomicRMW(ForOp, context);
     };
   });
 
   // Done to change Affine Load/Stores to memref Load/Stores to aid GPU Dialect Translation
-  RewritePatternSet patterns(&getContext());
+  RewritePatternSet patterns(context);
   populateAffineToMemrefConversionPatterns(patterns);
-  ConversionTarget target(getContext());
+  ConversionTarget target(*context);
   target.addLegalDialect<memref::MemRefDialect>();
   if (failed(applyPartialConversion(getOperation(), target, std::move(patterns))))
     signalPassFailure();
+
 }
 
 std::unique_ptr<OperationPass<func::FuncOp>>

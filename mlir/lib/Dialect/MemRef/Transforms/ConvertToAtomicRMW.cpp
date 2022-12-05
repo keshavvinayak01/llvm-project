@@ -11,13 +11,20 @@
 // apply this transformation to.
 //===----------------------------------------------------------------------===//
 
+#include "mlir/Dialect/Affine/LoopUtils.h"
+#include "mlir/Dialect/Affine/Utils.h"
 #include "mlir/Dialect/MemRef/Transforms/Passes.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Arith/Transforms/Passes.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Dialect/MemRef/Utils/MemRefUtils.h"
+#include "mlir/Dialect/Affine/Analysis/AffineAnalysis.h"
+#include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/Transforms/Passes.h"
+#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include <vector>
 
 namespace mlir {
@@ -40,9 +47,9 @@ namespace {
 }
 
 void ConvertToAtomicRMW::runOnOperation() {
-  func::FuncOp Func = getOperation();
-  Func.walk([&](AffineForOp forOp) {
-    ReplaceOpwithAtomicRMW(forOp);
+  MLIRContext *context = &getContext();
+  getOperation()->walk([&](AffineForOp forOp) {
+    ReplaceOpwithAtomicRMW(forOp, context);
   });
 }
 
