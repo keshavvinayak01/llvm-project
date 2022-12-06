@@ -2897,7 +2897,6 @@ bool mlir::isReductionNest(AffineForOp ForOp) {
 									(LastArithOp->getOperands()[0] == ReductionVar));
 	}
   return HasArithOp && (LastStoreVar == ReductionVar.getMemRef()) && (!BadArrayStore);
-  return false;
 }
 
 struct OperationWithOrder {
