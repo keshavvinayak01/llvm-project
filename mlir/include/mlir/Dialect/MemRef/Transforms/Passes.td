@@ -185,9 +185,9 @@ def ConvertToAtomicRMW :
   }];
   let constructor =
       "mlir::memref::createConvertToAtomicRMW()";
-  // let dependentDialects = [
-  //   "AffineDialect", "memref::MemRefDialect", "tensor::TensorDialect"
-  // ];
+  let dependentDialects = [
+    "AffineDialect", "memref::MemRefDialect"
+  ];
 }
 
 def ResolveShapedTypeResultDims : Pass<"resolve-shaped-type-result-dims"> {
