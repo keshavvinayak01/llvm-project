@@ -41,8 +41,9 @@ namespace {
 
 void ReductionHelper::runOnOperation() {
   MLIRContext *context = &getContext();
+
+  // Detects Reductions and introduces atomic_rmw, replacing Load/Arith/Store instructions.
   getOperation().walk([&](AffineForOp ForOp) {
-    // Add a check here to see if this ForOp contains an if condition.
     if(isReductionNest(ForOp)) {
       ReplaceOpwithAtomicRMW(ForOp, context);
     };
